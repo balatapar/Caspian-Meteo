@@ -68,15 +68,7 @@ class CaspianWeatherApp(ft.Container):
         self.favorites = self.settings.get("favorites", DEFAULT_FAVORITES)
         self.selected_models = set(self.settings.get("models", ["gfs_seamless"]))
 
-        # Detect mobile platform
-        self._is_mobile = False
-        try:
-            platform = (getattr(page, "platform", "") or "").lower()
-            width = getattr(page, "width", None) or 1100
-            self._is_mobile = platform in ("android", "ios") or width < 600
-        except Exception:
-            pass
-
+        self._is_mobile = self._detect_mobile()
         self._sidebar_open = not self._is_mobile
 
         # UI Components references
@@ -136,23 +128,36 @@ class CaspianWeatherApp(ft.Container):
             ft.Row([ft.ProgressRing(), ft.Text(Strings.LOADING, color=MUTED)], alignment=ft.MainAxisAlignment.CENTER)
         ]
 
-    def did_mount(self):
-        # Detect actual platform/width now that page is mounted
+    def _detect_mobile(self) -> bool:
         try:
-            platform = (getattr(self._page, "platform", "") or "").lower()
-            width = getattr(self._page, "width", None) or 1100
-            is_mobile = platform in ("android", "ios") or width < 600
+            plat = getattr(self._page, "platform", None)
+            plat_value = getattr(plat, "value", plat)
+            plat_str = str(plat_value or "").lower()
+            if plat_str in ("android", "android_tv", "ios"):
+                return True
+            width = getattr(self._page, "width", None)
+            if isinstance(width, (int, float)) and width < 600:
+                return True
         except Exception:
-            is_mobile = False
+            pass
+        return False
 
+    def _apply_platform_layout(self):
+        self._build_sidebar()
+        self._build_main_area()
+        if self._page:
+            self._page.update()
+
+    def did_mount(self):
+        # Re-evaluate now that the page is mounted and has a real size.
+        is_mobile = self._detect_mobile()
         if is_mobile != self._is_mobile:
             self._is_mobile = is_mobile
             self._sidebar_open = not is_mobile
-            # Rebuild layout for detected platform
-            self._build_sidebar()
-            self._build_main_area()
-            if self._page:
-                self._page.update()
+            self._apply_platform_layout()
+
+        if self._page is not None:
+            self._page.on_resize = self._on_resize
 
         # Fetch weather data
         try:
@@ -163,6 +168,13 @@ class CaspianWeatherApp(ft.Container):
                 asyncio.create_task(self.load_weather())
             except Exception:
                 pass
+
+    def _on_resize(self, e):
+        is_mobile = self._detect_mobile()
+        if is_mobile != self._is_mobile:
+            self._is_mobile = is_mobile
+            self._sidebar_open = not is_mobile
+            self._apply_platform_layout()
 
     def refresh_from_fields(self):
         # Refresh handler: persist field values first so a city change is real.
@@ -182,7 +194,7 @@ class CaspianWeatherApp(ft.Container):
             width=280,
             bgcolor="#161a14",
             padding=16,
-            visible=not self._is_mobile,
+            visible=True,
             content=ft.ListView(
                 expand=True,
                 spacing=10,
@@ -213,7 +225,10 @@ ft.Column(list(self.model_checks.values()), spacing=2),
 
     def _toggle_sidebar(self, e):
         self._sidebar_open = not self._sidebar_open
-        self.sidebar.visible = self._sidebar_open
+        if self._is_mobile:
+            self.sidebar_overlay.visible = self._sidebar_open
+        else:
+            self.sidebar.visible = self._sidebar_open
         if self._page:
             self._page.update()
 
