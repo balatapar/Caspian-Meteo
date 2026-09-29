@@ -438,21 +438,20 @@ ft.Row([
                 code = d_codes[i] if i < len(d_codes) else None
                 dt = d_times[i]
                 daily_cards.append(ft.Container(
-                    padding=6, border_radius=10, bgcolor=BG_CARD, border=ft.Border.all(1, "#4a5548"),
-                    content=ft.Row([
-                        ft.Text(format_date(dt), size=12, weight=ft.FontWeight.BOLD, color=TEXT),
-                        ft.Text(weather_label(code), size=11, color=MUTED),
-                        ft.Text(format_temperature(max_t), size=12, weight=ft.FontWeight.BOLD, color="#e6c656"),
-                        ft.Text(format_temperature(min_t), size=12, color="#a3b18a"),
-                        ft.Text(f"\u2602 {format_percentage(prob)}", size=11, color="#7fb069"),
-                    ], spacing=6, vertical_alignment=ft.CrossAxisAlignment.CENTER)
+                    padding=8, border_radius=10, bgcolor=BG_CARD, border=ft.Border.all(1, "#4a5548"),
+                    content=ft.Column([
+                        ft.Text(format_date(dt), size=13, weight=ft.FontWeight.BOLD, color=TEXT),
+                        ft.Row([
+                            ft.Text(weather_label(code), size=12, color=MUTED, expand=True),
+                            ft.Text(format_temperature(max_t), size=13, weight=ft.FontWeight.BOLD, color="#e6c656"),
+                            ft.Text(format_temperature(min_t), size=13, color="#a3b18a"),
+                            ft.Text(f"\u2602 {format_percentage(prob)}", size=12, color="#7fb069"),
+                        ], spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                    ], spacing=4),
                 ))
 
-            # Two real columns: wide right (current/hourly/charts), narrow left (7-day).
-            # daily_view lives in a bounded TabBarView, so disable its own scroll
-            # and let each column scroll independently: no more endless page.
-            self.daily_view.scroll = None
-            right_col = ft.Column([current_card, hourly_section, charts_widget], expand=17, spacing=12, scroll=ft.ScrollMode.AUTO)
+            # Responsive layout: on mobile stack vertically for full-width readable cards,
+            # on desktop keep two columns (wide right + narrow left).
             seven_day_card = ft.Container(
                 padding=10, border_radius=16, bgcolor=BG_CARD, border=ft.Border.all(1, "#4a5548"),
                 content=ft.Column([
@@ -460,11 +459,23 @@ ft.Row([
                     *daily_cards,
                 ], spacing=6),
             )
-            left_col = ft.Column([seven_day_card], expand=10, spacing=12, scroll=ft.ScrollMode.AUTO)
-            self.daily_view.controls = [
-                header_row,
-                ft.Row([right_col, left_col], spacing=12, expand=True, vertical_alignment=ft.CrossAxisAlignment.START),
-            ]
+            if self._is_mobile:
+                self.daily_view.scroll = ft.ScrollMode.AUTO
+                self.daily_view.controls = [
+                    header_row,
+                    current_card,
+                    seven_day_card,
+                    hourly_section,
+                    charts_widget,
+                ]
+            else:
+                self.daily_view.scroll = None
+                right_col = ft.Column([current_card, hourly_section, charts_widget], expand=17, spacing=12, scroll=ft.ScrollMode.AUTO)
+                left_col = ft.Column([seven_day_card], expand=10, spacing=12, scroll=ft.ScrollMode.AUTO)
+                self.daily_view.controls = [
+                    header_row,
+                    ft.Row([right_col, left_col], spacing=12, expand=True, vertical_alignment=ft.CrossAxisAlignment.START),
+                ]
             self.status_text.value = "بازیابی اطلاعات کامل شد."
             self.status_text.color = TEAL
         except Exception as ex:

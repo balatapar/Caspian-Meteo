@@ -79,7 +79,7 @@ def _signal_text(total_rain: float) -> str:
 
 def _comparison_table(snapshot: dict | None) -> ft.Control:
     if not snapshot:
-        return surface(ft.Text("\u062f\u0627\u062f\u0647 \u0645\u062f\u0644\u200c\u0647\u0627 \u062f\u0631 \u062f\u0633\u062a\u0631\u0633 \u0646\u06cc\u0633\u062a.", size=13, color=MUTED))
+        return surface(ft.Text("\u062f\u0627\u062f\u0647 \u0645\u062f\u0644\u200c\u0647\u0627 \u062f\u0631 \u062f\u0633\u062a\u0631\u0633 \u0646\u06cc\u0633\u062a.", size=12, color=MUTED))
     rows = []
     for model_id, data in _model_rows(snapshot):
         label = MODEL_LABELS.get(model_id, model_id)
@@ -91,23 +91,23 @@ def _comparison_table(snapshot: dict | None) -> ft.Control:
         total = round(sum(rains), 1) if rains else 0.0
         rows.append(
             ft.DataRow(cells=[
-                ft.DataCell(ft.Text(label, size=13, weight=ft.FontWeight.BOLD, color=GOLD)),
-                ft.DataCell(ft.Text(format_temperature(hi) if hi is not None else "\u2014", size=13, color=TEXT)),
-                ft.DataCell(ft.Text(format_temperature(lo) if lo is not None else "\u2014", size=13, color=TEXT)),
-                ft.DataCell(ft.Text(format_precipitation(total), size=13, color=TEXT)),
-                ft.DataCell(ft.Text(_signal_text(total), size=12, color=OLIVE)),
+                ft.DataCell(ft.Text(label, size=12, weight=ft.FontWeight.BOLD, color=GOLD)),
+                ft.DataCell(ft.Text(format_temperature(hi) if hi is not None else "\u2014", size=12, color=TEXT)),
+                ft.DataCell(ft.Text(format_temperature(lo) if lo is not None else "\u2014", size=12, color=TEXT)),
+                ft.DataCell(ft.Text(format_precipitation(total), size=12, color=TEXT)),
+                ft.DataCell(ft.Text(_signal_text(total), size=11, color=OLIVE)),
             ])
         )
     return surface(
         ft.Column([
-            ft.Text("\u0645\u0642\u0627\u06cc\u0633\u0647 \u0645\u062f\u0644\u200c\u0647\u0627", size=15, weight=ft.FontWeight.BOLD, color=TEXT),
+            ft.Text("\u0645\u0642\u0627\u06cc\u0633\u0647 \u0645\u062f\u0644\u200c\u0647\u0627", size=14, weight=ft.FontWeight.BOLD, color=TEXT),
             ft.DataTable(
                 columns=[
-                    ft.DataColumn(ft.Text("\u0645\u062f\u0644", size=12, color=MUTED)),
-                    ft.DataColumn(ft.Text("\u0628\u06cc\u0634\u06cc\u0646\u0647", size=12, color=MUTED)),
-                    ft.DataColumn(ft.Text("\u06a9\u0645\u06cc\u0646\u0647", size=12, color=MUTED)),
-                    ft.DataColumn(ft.Text("\u0628\u0627\u0631\u0634", size=12, color=MUTED)),
-                    ft.DataColumn(ft.Text("\u0633\u06cc\u06af\u0646\u0627\u0644", size=12, color=MUTED)),
+                    ft.DataColumn(ft.Text("\u0645\u062f\u0644", size=11, color=MUTED)),
+                    ft.DataColumn(ft.Text("\u0628\u06cc\u0634\u06cc\u0646\u0647", size=11, color=MUTED)),
+                    ft.DataColumn(ft.Text("\u06a9\u0645\u06cc\u0646\u0647", size=11, color=MUTED)),
+                    ft.DataColumn(ft.Text("\u0628\u0627\u0631\u0634", size=11, color=MUTED)),
+                    ft.DataColumn(ft.Text("\u0633\u06cc\u06af\u0646\u0627\u0644", size=11, color=MUTED)),
                 ],
                 rows=rows,
             ),
@@ -140,8 +140,8 @@ def _key_points_card(snapshot: dict | None) -> ft.Control:
         bullets = ["\u062a\u062d\u0644\u06cc\u0644 \u0622\u0645\u0627\u062f\u0647 \u0627\u0633\u062a؛ \u062c\u0632\u0626\u06cc\u0627\u062a \u0631\u0627 \u062f\u0631 \u0633\u062a\u0648\u0646 \u0631\u0627\u0633\u062a \u0628\u062e\u0648\u0627\u0646\u06cc\u062f."]
     return surface(
         ft.Column([
-            ft.Text("\U0001f4cc \u0646\u06a9\u0627\u062a \u06a9\u0644\u06cc\u062f\u06cc \u062a\u062d\u0644\u06cc\u0644", size=15, weight=ft.FontWeight.BOLD, color=GOLD),
-            *[ft.Text(f"\u2022 {b}", size=14, color=TEXT) for b in bullets[:3]],
+            ft.Text("\U0001f4cc \u0646\u06a9\u0627\u062a \u06a9\u0644\u06cc\u062f\u06cc \u062a\u062d\u0644\u06cc\u0644", size=14, weight=ft.FontWeight.BOLD, color=GOLD),
+            *[ft.Text(f"\u2022 {b}", size=13, color=TEXT) for b in bullets[:3]],
         ], spacing=8)
     )
 
@@ -205,23 +205,57 @@ class WeeklyAnalysisView(ft.Container):
         else:
             if not intro:
                 right_controls.append(ft.Text(analysis, size=15, selectable=True, color=TEXT))
-        right_col = ft.Column(right_controls, expand=True, spacing=10, scroll=ft.ScrollMode.AUTO)
+        # Responsive: narrow screens stack vertically so analysis gets full width.
+        # Wide screens keep side-by-side with analysis 2x wider than side panels.
+        try:
+            _w = getattr(getattr(self, "page", None), "width", None)
+            _narrow = isinstance(_w, (int, float)) and _w < 700
+        except Exception:
+            _narrow = False
+        # On mobile the page width is often None at first render -> default to stacked
+        # if we cannot prove we are wide.
+        try:
+            import os
 
-        # Left (narrow): comparison table on top, key points below.
-        left_col = ft.Column(
-            [_comparison_table(snapshot), _key_points_card(snapshot)],
-            expand=True, spacing=12, scroll=ft.ScrollMode.AUTO,
-        )
+            _platform_hint = os.getenv("FLET_PLATFORM", "")
+            if _w is None:
+                _narrow = True
+        except Exception:
+            pass
 
-        self.content = ft.Column(
-            controls=[
-                header,
-                ft.Text(status, size=11, color=MUTED),
-                ft.Row([right_col, left_col], spacing=12, expand=True, vertical_alignment=ft.CrossAxisAlignment.START),
-            ],
-            spacing=10,
-            expand=True,
+        analysis_card = surface(
+            ft.Column(right_controls, spacing=10),
+            padding=16,
         )
+        side_cards = [_comparison_table(snapshot), _key_points_card(snapshot)]
+
+        if _narrow:
+            self.content = ft.Column(
+                controls=[
+                    header,
+                    ft.Text(status, size=11, color=MUTED),
+                    analysis_card,
+                    *side_cards,
+                ],
+                spacing=10,
+                expand=True,
+                scroll=ft.ScrollMode.AUTO,
+            )
+        else:
+            right_col = ft.Column([analysis_card], expand=2, spacing=10, scroll=ft.ScrollMode.AUTO)
+            left_col = ft.Column(
+                side_cards,
+                expand=1, spacing=12, scroll=ft.ScrollMode.AUTO,
+            )
+            self.content = ft.Column(
+                controls=[
+                    header,
+                    ft.Text(status, size=11, color=MUTED),
+                    ft.Row([right_col, left_col], spacing=12, expand=True, vertical_alignment=ft.CrossAxisAlignment.START),
+                ],
+                spacing=10,
+                expand=True,
+            )
 
     async def load_analysis_data(self, force: bool = False):
         if not config.GEMINI_API_KEY:
