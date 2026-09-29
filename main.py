@@ -227,8 +227,17 @@ ft.Column(list(self.model_checks.values()), spacing=2),
         self._sidebar_open = not self._sidebar_open
         if self._is_mobile:
             self.sidebar_overlay.visible = self._sidebar_open
+            self.sidebar_scrim.visible = self._sidebar_open
         else:
             self.sidebar.visible = self._sidebar_open
+        if self._page:
+            self._page.update()
+
+    def _close_sidebar(self, e=None):
+        self._sidebar_open = False
+        if self._is_mobile:
+            self.sidebar_overlay.visible = False
+            self.sidebar_scrim.visible = False
         if self._page:
             self._page.update()
 
@@ -290,10 +299,20 @@ ft.Column(list(self.model_checks.values()), spacing=2),
 
         if self._is_mobile:
             # On mobile: sidebar overlays main content when open
+            self.sidebar_scrim = ft.Container(
+                expand=True,
+                bgcolor="#00000080",
+                visible=self._sidebar_open,
+                on_click=self._close_sidebar,
+            )
             self.sidebar_overlay = ft.Container(
                 content=self.sidebar,
-                width=280,
+                width=260,
+                height=None,
                 bgcolor="#161a14",
+                left=0,
+                top=0,
+                bottom=0,
                 visible=self._sidebar_open,
             )
             self.content = ft.Stack([
@@ -301,6 +320,7 @@ ft.Column(list(self.model_checks.values()), spacing=2),
                     self.mobile_top_bar,
                     main_content,
                 ], expand=True),
+                self.sidebar_scrim,
                 self.sidebar_overlay,
             ], expand=True)
         else:
@@ -409,8 +429,8 @@ ft.Row([
                 daily_cards.append(ft.Container(
                     padding=6, border_radius=10, bgcolor=BG_CARD, border=ft.Border.all(1, "#4a5548"),
                     content=ft.Row([
-                        ft.Text(format_date(dt), size=12, weight=ft.FontWeight.BOLD, color=TEXT, expand=True),
-                        ft.Text(weather_label(code), size=11, color=MUTED, expand=True),
+                        ft.Text(format_date(dt), size=12, weight=ft.FontWeight.BOLD, color=TEXT),
+                        ft.Text(weather_label(code), size=11, color=MUTED),
                         ft.Text(format_temperature(max_t), size=12, weight=ft.FontWeight.BOLD, color="#e6c656"),
                         ft.Text(format_temperature(min_t), size=12, color="#a3b18a"),
                         ft.Text(f"\u2602 {format_percentage(prob)}", size=11, color="#7fb069"),

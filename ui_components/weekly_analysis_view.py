@@ -205,12 +205,12 @@ class WeeklyAnalysisView(ft.Container):
         else:
             if not intro:
                 right_controls.append(ft.Text(analysis, size=15, selectable=True, color=TEXT))
-        right_col = ft.Column(right_controls, expand=12, spacing=10, scroll=ft.ScrollMode.AUTO)
+        right_col = ft.Column(right_controls, expand=True, spacing=10, scroll=ft.ScrollMode.AUTO)
 
         # Left (narrow): comparison table on top, key points below.
         left_col = ft.Column(
             [_comparison_table(snapshot), _key_points_card(snapshot)],
-            expand=10, spacing=12, scroll=ft.ScrollMode.AUTO,
+            expand=True, spacing=12, scroll=ft.ScrollMode.AUTO,
         )
 
         self.content = ft.Column(
