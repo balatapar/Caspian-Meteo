@@ -295,7 +295,7 @@ ft.Column(list(self.model_checks.values()), spacing=2),
 
         # Mobile top bar with hamburger (offset below status bar / battery)
         self.mobile_top_bar = ft.Container(
-            padding=ft.padding.only(top=36, left=8, right=8, bottom=8),
+            padding=ft.Padding.only(top=36, left=8, right=8, bottom=8),
             bgcolor=BG_CARD,
             content=ft.Row([
                 self.menu_button,
@@ -317,7 +317,7 @@ ft.Column(list(self.model_checks.values()), spacing=2),
                 width=260,
                 height=None,
                 bgcolor="#161a14",
-                padding=ft.padding.only(top=36, left=0, right=0, bottom=0),
+                padding=ft.Padding.only(top=36, left=0, right=0, bottom=0),
                 left=0,
                 top=0,
                 bottom=0,
