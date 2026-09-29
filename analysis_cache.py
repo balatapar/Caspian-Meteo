@@ -8,7 +8,18 @@ from typing import Any
 
 from utils import to_persian_digits
 
-CACHE_DIR = Path(os.getenv("LOCALAPPDATA", Path.home())) / "CaspianWeather"
+try:
+    from settings_store import get_app_dir as _get_app_dir
+
+    CACHE_DIR = _get_app_dir()
+except Exception:
+    import tempfile
+
+    try:
+        CACHE_DIR = Path.cwd() / "CaspianWeather"
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        CACHE_DIR = Path(tempfile.gettempdir()) / "CaspianWeather"
 CACHE_PATH = CACHE_DIR / "analysis_cache.json"
 MAX_AGE = timedelta(hours=24)
 MIN_SIGNIFICANT_CHANGE_AGE = timedelta(hours=6)
@@ -33,7 +44,10 @@ def load_cache() -> dict[str, Any] | None:
 
 
 def save_cache(analysis: str, forecast_snapshot: dict) -> None:
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return
     data = {
         "generated_at": _now().isoformat(),
         "analysis": analysis,

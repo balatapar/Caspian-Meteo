@@ -24,7 +24,7 @@ import flet as ft
 
 import config
 from localization import Strings
-from settings_store import load_settings, save_settings, save_gemini_key, reset_to_default_location, DEFAULT_FAVORITES
+from settings_store import load_settings, save_settings, save_gemini_key, load_gemini_key, reset_to_default_location, DEFAULT_FAVORITES
 from weather_service import get_daily_and_hourly_weather
 from ui_components.weather_charts import build_weather_charts
 from ui_components.weekly_analysis_view import WeeklyAnalysisView
@@ -96,10 +96,17 @@ class CaspianWeatherApp(ft.Container):
             label="منطقه زمانی", value=self.settings.get("timezone", ""),
             color=TEXT, bgcolor=FIELD_BG, border_color="#5a6658", focused_border_color=TEAL,
         )
+        try:
+            _saved_key = load_gemini_key() or config.GEMINI_API_KEY or ""
+        except Exception:
+            _saved_key = config.GEMINI_API_KEY or ""
         self.gemini_key = ft.TextField(
             label="کلید Gemini", password=True, can_reveal_password=True,
+            value=_saved_key,
             color=TEXT, bgcolor=FIELD_BG, border_color="#5a6658", focused_border_color=TEAL,
         )
+        if _saved_key:
+            config.GEMINI_API_KEY = _saved_key
 
         # Model checkboxes
         self.model_checks = {
@@ -286,9 +293,9 @@ ft.Column(list(self.model_checks.values()), spacing=2),
             content=self.tabs
         )
 
-        # Mobile top bar with hamburger
+        # Mobile top bar with hamburger (offset below status bar / battery)
         self.mobile_top_bar = ft.Container(
-            padding=8,
+            padding=ft.padding.only(top=36, left=8, right=8, bottom=8),
             bgcolor=BG_CARD,
             content=ft.Row([
                 self.menu_button,
@@ -310,19 +317,23 @@ ft.Column(list(self.model_checks.values()), spacing=2),
                 width=260,
                 height=None,
                 bgcolor="#161a14",
+                padding=ft.padding.only(top=36, left=0, right=0, bottom=0),
                 left=0,
                 top=0,
                 bottom=0,
                 visible=self._sidebar_open,
             )
-            self.content = ft.Stack([
-                ft.Column([
-                    self.mobile_top_bar,
-                    main_content,
+            self.content = ft.SafeArea(
+                content=ft.Stack([
+                    ft.Column([
+                        self.mobile_top_bar,
+                        main_content,
+                    ], expand=True),
+                    self.sidebar_scrim,
+                    self.sidebar_overlay,
                 ], expand=True),
-                self.sidebar_scrim,
-                self.sidebar_overlay,
-            ], expand=True)
+                expand=True,
+            )
         else:
             # Desktop: standard sidebar + main layout
             self.content = ft.Row(
