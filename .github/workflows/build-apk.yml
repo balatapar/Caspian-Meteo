@@ -46,38 +46,44 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
-      - name: Build APK with Flet
+      - name: Build APK with Flet (split per ABI)
         run: |
           # Patch flet-charts pubspec before build
           python scripts/patch_flet_charts_pubspec.py
           
-          # Build APK using flet
-          yes | flet build apk --verbose
+          # Build one APK per ABI (arm64-v8a, armeabi-v7a, x86_64)
+          # Official Flet flag, see https://flet.dev/docs/publish/android#split-apk-per-abi
+          yes | flet build apk --verbose --split-per-abi
           
-          # The APK is already in build/apk/, verify and rename
-          mkdir -p build/apk
-          if ls build/apk/*.apk 1>/dev/null 2>&1; then
-            APK_PATH=$(find build/apk -maxdepth 1 -type f -name "*.apk" | head -n 1)
-            mv "$APK_PATH" build/apk/CaspianFlow-release.apk
-            echo "APK ready at build/apk/CaspianFlow-release.apk"
-            ls -lh build/apk/
-          else
+          # Verify: with --split-per-abi there must be 3 APKs in build/apk/
+          echo "Generated APKs:"
+          ls -lh build/apk/
+          APK_COUNT=$(ls build/apk/*.apk 2>/dev/null | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
             echo "ERROR: APK not found in build/apk/ after build."
             exit 1
           fi
+          echo "Found $APK_COUNT APK file(s)."
 
-      - name: Upload APK Artifact
+      - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4.4.0
         with:
           name: CaspianWeather-APK
           path: build/apk/*.apk
 
-      - name: Create GitHub Release with APK
+      - name: Create GitHub Release with APKs
         uses: softprops/action-gh-release@v1
         with:
           tag_name: build-${{ github.sha }}
           name: CaspianWeather ${{ github.sha }}
-          body: Automated APK build from commit ${{ github.sha }}
+          body: |
+            Automated split-per-ABI APK build from commit ${{ github.sha }}.
+
+            Download the APK matching your device (each ~60MB instead of one 182MB universal APK):
+
+            - `app-arm64-v8a-release.apk` — most modern phones (recommended)
+            - `app-armeabi-v7a-release.apk` — older 32-bit phones
+            - `app-x86_64-release.apk` — emulators
           files: build/apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
